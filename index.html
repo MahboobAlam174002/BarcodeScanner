@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-shield"></i> Admin Login</h2>
+            </div>
+            <form id="login-form">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="admin-username" placeholder="Enter Username" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="admin-password" placeholder="Enter Password" required>
+                </div>
+                <button type="submit" class="btn primary-btn"><i class="fas fa-sign-in-alt"></i> Login</button>
+                <p id="login-error" class="error-text"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard hidden">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-parking"></i> Smart Parking</h3>
+            </div>
+            <nav>
+                <ul>
+                    <li data-section="profile"><i class="fas fa-user"></i> Profile</li>
+                    <li class="active" data-section="slots"><i class="fas fa-car"></i> Parking Slots</li>
+                    <li data-section="bookings"><i class="fas fa-book"></i> Bookings <span id="booking-badge" class="badge hidden">0</span></li>
+                    <li data-section="reports"><i class="fas fa-chart-line"></i> Reports</li>
+                    <li id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>Admin Dashboard</h1>
+                <div class="header-info">
+                    <span id="clock"></span>
+                    <span id="admin-name">Admin</span>
+                </div>
+            </header>
+
+            <!-- Overview Section -->
+            <section id="overview-section" class="content-section">
+                <div class="section-header">
+                    <h2>Parking Overview</h2>
+                    <button id="scan-barcode-btn" class="btn primary-btn"><i class="fas fa-barcode"></i> Scan ID to Book</button>
+                </div>
+                <!-- Barcode Scanner UI -->
+                <div id="barcode-scanner-container" class="hidden">
+                    <video id="barcode-video" autoplay playsinline style="width: 100%; max-width: 640px; height: auto;"></video>
+                    <button id="stop-scanning-btn" class="btn primary-btn"><i class="fas fa-stop"></i> Stop Scanning</button>
+                </div>
+                <div id="parking-grid" class="parking-grid"></div>
+                <div class="overview-grid">
+                    <div class="overview-card">
+                        <h3>Total Slots</h3>
+                        <p id="total-slots">0</p>
+                    </div>
+                    <div class="overview-card">
+                        <h3>Available Slots</h3>
+                        <p id="available-slots">0</p>
+                    </div>
+                    <div class="overview-card">
+                        <h3>Booked Slots</h3>
+                        <p id="booked-slots">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slots Section -->
+            <section id="slots-section" class="content-section">
+                <div class="section-header">
+                    <h2>Parking Slots</h2>
+                    <span id="slot-stats"></span>
+                </div>
+                <div id="parking-grid" class="parking-grid"></div>
+            </section>
+
+            <!-- Bookings Section -->
+            <section id="bookings-section" class="content-section hidden">
+                <div class="section-header">
+                    <h2>Book a Slot</h2>
+                </div>
+                <form id="booking-form" class="booking-form">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Name</label>
+                            <input type="text" id="user-name" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Phone</label>
+                            <input type="tel" id="user-phone" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Vehicle No.</label>
+                            <input type="text" id="vehicle-number" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Vehicle Type</label>
+                            <select id="vehicle-type" required>
+                                <option value="" disabled selected>Select Vehicle Type</option>
+                                <option value="Car">Car</option>
+                                <option value="Bike">Bike</option>
+                                <option value="VIP">VIP Vehicle</option>
+                                <option value="Priority">Priority (Disabled/Emergency)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Slot</label>
+                            <select id="slot-number" required></select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn primary-btn">Book Now</button>
+                </form>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="content-section hidden">
+                <div class="section-header">
+                    <h2>Reports & History</h2>
+                    <div class="report-actions">
+                        <button id="export-excel" class="btn"><i class="fas fa-file-excel"></i> Excel</button>
+                        <button id="export-pdf" class="btn"><i class="fas fa-file-pdf"></i> PDF</button>
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <input type="text" id="search-input" placeholder="Search by Name, Vehicle, or Phone">
+                    </div>
+                    <div class="filter-group">
+                        <label for="start-date">From:</label>
+                        <input type="date" id="start-date">
+                        <label for="end-date">To:</label>
+                        <input type="date" id="end-date">
+                    </div>
+                </div>
+                <div id="history-table" class="history-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Slot</th>
+                                <th>Name</th>
+                                <th>Vehicle</th>
+                                <th>Phone</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Vehicle Type</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Profile Section -->
+            <section id="profile-section" class="content-section hidden">
+                <div class="section-header">
+                    <h2>Admin Profile</h2>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-info">
+                        <h3>Profile Picture</h3>
+                        <div class="profile-picture">
+                            <img id="profile-pic" src="" alt="Profile Picture" class="hidden">
+                            <input type="file" id="profile-pic-upload" accept="image/*">
+                            <button id="upload-pic-btn" class="btn">Upload Picture</button>
+                        </div>
+                    </div>
+                    <div class="profile-info">
+                        <h3>Username</h3>
+                        <p id="profile-username"></p>
+                    </div>
+                    <div class="profile-info">
+                        <h3>Change Password</h3>
+                        <form id="change-password-form">
+                            <div class="input-group">
+                                <label for="current-password">Current Password</label>
+                                <input type="password" id="current-password" placeholder="Enter Old Password" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="new-password">New Password</label>
+                                <input type="password" id="new-password" placeholder="Enter New Password" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="confirm-password">Confirm New Password</label>
+                                <input type="password" id="confirm-password" placeholder="Confirm New Password" required>
+                            </div>
+                            <button type="submit" class="btn primary-btn">Update Password</button>
+                            <p id="password-error" class="error-text"></p>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
